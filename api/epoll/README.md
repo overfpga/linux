@@ -33,6 +33,7 @@
       struct eventpoll *tep = NULL;
 
       error = -EFAULT;
+      /*op不是EPOLL_CTL_DEL，且能够正常从用户空间把event拷贝到epds内核空间*/
       if (ep_op_has_event(op) &&
           copy_from_user(&epds, event, sizeof(struct epoll_event)))
         goto error_return;
@@ -145,7 +146,21 @@
     }
 
 
+    /*给取用户fd对应内核的struct fd， 对应的fd file地址是 ~3，3取反*/
+    static inline struct fd __to_fd(unsigned long v)
+    {
+      return (struct fd){(struct file *)(v & ~3),v & 3};
+    }
+    /*取用户fd对应的fd文件*/
+    static inline struct fd fdget(unsigned int fd)
+    {
+      return __to_fd(__fdget(fd));
+    }
 
+    events事件类型
+      EPOLLWAKEUP：内核如果未开启CONFIG_PM_SLEEP，则关闭EPOLLWAKEUP功能；EPOLLWAKEUP类型在用户空间设置
+
+      EPOLLEXCLUSIVE：这个标志保证一个事件只有一个epoll_wait被唤醒，避免了惊群效应 https://zhuanlan.zhihu.com/p/634389226
 
 
 
