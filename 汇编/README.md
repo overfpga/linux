@@ -96,7 +96,9 @@
         shr 的语法为：
             shr destination, count
         其中 destination 是要进行右移操作的目标操作数，可以是寄存器或内存位置；count 是右移的位数，可以是立即数或者存储在 CL 寄存器中。需要注意的是，对于 32 位和 64 位操作数，最多只能进行 31 位的右移。
-    
+
+
+
     rol:rol 是 x86 汇编指令中的循环左移指令（Rotate Left）。它将给定操作数向左循环移动指定的位数
     rol 的语法为：
         rol destination, count
