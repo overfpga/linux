@@ -177,5 +177,127 @@
 
         通过正确使用 call 和 ret 指令配合，我们可以实现过程/函数的调用和返回，在程序中实现模块化和重复利用代码
 
+    定义段
+    NASM编译器使用汇编指令“SECTION”或者“SEGMENT”来定义段。它的一般格式是
+        SECTION 段名称 或 SEGMENT 段名称
 
-        
+
+
+# 查看可执行文件内容的命令和一些工具
+
+    使用hexdump或xxd命令：这些命令可以以十六进制格式显示文件的内容。在终端中执行以下命令：
+
+    hexdump -C executable_file
+    或者
+    xxd executable_file
+    这将以16进制形式显示文件的内容。
+
+    使用objdump命令：这个命令用于反汇编可执行文件，将机器代码转换回对应的汇编指令。在终端中执行以下命令：
+
+    objdump -d executable_file
+    这将显示可执行文件中的汇编指令和相关信息。
+
+    使用readelf命令：这个命令用于查看ELF（Executable and Linkable Format）格式的可执行文件的详细信息，包括程序头、段表、符号表等。在终端中执行以下命令：
+
+    readelf -a executable_file
+    这将显示可执行文件的各个部分及其属性。
+
+    请注意，上述方法主要适用于Linux和类Unix系统。对于其他操作系统，可能需要使用相应平台上特定的工具或调试器来查看可执行文件的内容。
+
+
+# 数据结构
+
+## 存储器段描述符
+        struct SegmentDescriptor {
+        unsigned int limit_low: 16;      // 段限长低16位
+        unsigned int base_low: 24;       // 段基址低24位
+        unsigned int type: 4;            // 段类型
+        unsigned int s: 1;               // 存储器段标志（0表示系统段，1表示代码或数据段）
+        unsigned int dpl: 2;             // 特权级别（0-3为内核态，4-7为用户态）
+        unsigned int p: 1;               // 存在位（指示该段是否存在于内存中）
+        unsigned int limit_high: 4;      // 段限长高4位
+        unsigned int avl: 1;             // 可用位（可以由操作系统自行使用）
+        unsigned int l: 1;               // 长模式标志（启用时表示该代码段支持64位模式）
+        unsigned int db: 1;              // 默认操作数大小标志（0表示16位操作数，1表示32位操作数或64位操作数）
+        unsigned int g: 1;               // G位（控制单位：字节还是4KB页）
+        unsigned int base_high :8 ;      // 段基址高8位
+    };
+
+
+
+
+
+# NASM
+
+## 伪指令
+    当前的伪指令有'DB','DW','DD','DQ'和 ‘DT’，它们对应的未初始化指令是'RESB','RESW','RESD','RESQ'和'REST'，'INCBIN' 命令，'EQU'命令和'TIEMS'前缀
+
+    在 NASM 中，`DB', `DW', `DD', `DQ'和`DT'经常被用来在输出文件中声明已初始化 
+    的数据，你可以多种方式使用它们： 
+    db 0x55 ; just the byte 0x55 
+    db 0x55,0x56,0x57 ; three bytes in succession 
+    db 'a',0x55 ; character constants are OK 
+    db 'hello',13,10,'$' ; so are string constants 
+    dw 0x1234 ; 0x34 0x12 
+    dw 'a' ; 0x41 0x00 (it's just a number) 
+    dw 'ab' ; 0x41 0x42 (character constant) 
+    dw 'abc' ; 0x41 0x42 0x43 0x00 (string) 
+    dd 0x12345678 ; 0x78 0x56 0x34 0x12 
+    dd 1.234567e20 ; floating-point constant 
+    dq 1.234567e20 ; double-precision float 
+    dt 1.234567e20 ; extended-precision float
+
+    'DQ'和'DT'不接受数值常数或字符串常数作为操作数。
+
+    这些伪指令开辟的内存在当前段
+    具体存储位置取决于你在代码中定义数据段和选择合适的内存地址来存储数据。例如，如果你在代码中声明了一个数据段并将其设置为可读写的数据段，
+    那么指定的双字0x123456将被存储在该数据段的下一个可用内存位置。
+
+    以下是一个示例代码片段：
+
+    ```assembly
+    section .data
+    my_data dd 0x123456
+
+    section .text
+    global _start
+
+    _start:
+        ; 在这里进行程序逻辑操作
+    ```
+
+    在上述示例中，我们在.data节中定义了一个标签为my_data的双字变量，并初始化为0x123456。当程序加载到内存时，在.data节之后，my_data变量将占据相应的内存位置。
+
+    需要注意的是，在不同环境和操作系统下，具体内存地址分配可能有所不同。因此，具体位置可能会因上下文而异。
+
+
+
+    `RESB'类的伪指令: 声明未初始化的数据。
+
+    `RESB', `RESW', `RESD', `RESQ' and `REST'被设计用在模块的 BSS 段中：它们声明 
+    未初始化的存储空间。每一个带有单个操作数，用来表明字节数，字数，或双字数 
+    或其他的需要保留单位。就像在 2.2.7 中所描述的，NASM 不支持 MASM/TASM 的扣留未 
+    初始化空间的语法'DW ?'或类似的东西：现在我们所描述的正是 NASM 自己的方式。 
+    'RESB'类伪指令的操作数是有严格的语法的，参阅 3.8。
+    比如： 
+    buffer: resb 64 ; reserve 64 bytes 
+    wordvar: resw 1 ; reserve a word 
+    realarray resq 10 ; array of ten reals
+
+
+    `INCBIN':包含其他二进制文件
+
+    'INCBIN'是从老的 Amiga 汇编器 DevPac 中借过来的：它将一个二进制文件逐字逐句地 
+    包含到输出文件中。这能很方便地在一个游戏可执行文件中包含中图像或声音数 
+    据。它可以以下三种形式的任何一种使用： 
+    incbin "file.dat" ; include the whole file 
+    incbin "file.dat",1024 ; skip the first 1024 bytes 
+    incbin "file.dat",1024,512 ; skip the first 1024, and 
+    ; actually include at most 512
+
+
+
+
+
+
+
